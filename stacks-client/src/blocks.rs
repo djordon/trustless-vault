@@ -69,4 +69,27 @@ impl NakamotoBlockHeader {
         hasher.update(self.consensus_hash);
         hasher.finalize().into()
     }
+
+    /// Get the signing weight of a shadow block
+    pub fn get_shadow_signer_weight(&self, reward_set: &RewardSet) -> u32 {
+        reward_set
+            .signers
+            .iter()
+            .fold(0u32, |acc, signer| acc.saturating_add(signer.weight))
+    }
+
+    pub fn is_shadow_block(&self) -> bool {
+        self.version & 0x80 != 0
+    }
+}
+
+pub struct NakamotoSignerEntry {
+    pub signing_key: [u8; 33],
+    pub stacked_amt: u128,
+    pub weight: u32,
+}
+
+pub struct RewardSet {
+    pub signers: Vec<NakamotoSignerEntry>,
+    pub pox_ustx_threshold: Option<u128>,
 }
