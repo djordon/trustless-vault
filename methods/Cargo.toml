@@ -10,5 +10,3 @@ risc0-build = { version = "^3.0.3" }
 methods = ["../guest"]
 
 [dependencies]
-# hex = { workspace = true }
-# k256 = { workspace = true }
