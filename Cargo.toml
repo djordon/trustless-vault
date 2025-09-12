@@ -28,3 +28,4 @@ serde = { version = "1.0", features = ["derive"] }
 # multiplication accelerator support for all downstream usages of the following crates.
 sha2 = { git = "https://github.com/risc0/RustCrypto-hashes", tag = "sha2-v0.10.8-risczero.0" }
 k256 = { git = "https://github.com/risc0/RustCrypto-elliptic-curves", tag = "k256/v0.13.4-risczero.1" }
+crypto-bigint = { git = "https://github.com/risc0/crypto-bigint", tag = "v0.5.5-risczero.0" }
