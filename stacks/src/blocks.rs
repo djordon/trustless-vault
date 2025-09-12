@@ -11,10 +11,30 @@ use serde::Deserialize;
 use serde::Serialize;
 use sha2::Digest as _;
 
-#[derive(Deserialize, Serialize)]
-pub struct BitVec<const MAX_SIZE: u16> {
+pub struct BitVec {
     pub data: Vec<u8>,
     pub len: u16,
+}
+
+impl serde::Serialize for BitVec {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        let mut len = self.len.to_be_bytes().to_vec();
+        len.extend_from_slice(&self.data);
+        let inst = hex::encode(len);
+        s.serialize_str(inst.as_str())
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for BitVec {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<BitVec, D::Error> {
+        let inst_str = String::deserialize(d)?;
+        let bytes  = hex::decode(&inst_str)
+            .map_err(serde::de::Error::custom)?;
+        
+        let len = u16::from_be_bytes(bytes[..2].try_into().unwrap());
+        let data = bytes[2..].to_vec();
+        Ok(BitVec { len, data })
+    }
 }
 
 #[derive(Deserialize, Serialize)]
@@ -52,7 +72,7 @@ pub struct NakamotoBlockHeader {
     ///  or not in this block.
     ///
     /// The maximum number of entries in the bitvec is 4000.
-    pub pox_treatment: BitVec<4000>,
+    pub pox_treatment: BitVec,
 }
 
 impl NakamotoBlockHeader {
@@ -94,7 +114,9 @@ impl NakamotoBlockHeader {
     }
 
     pub fn verify_signatures(&self, signing_set: &BTreeSet<PublicKey>) -> bool {
+        tracing::info!("computing block hash");
         let hash = self.block_hash();
+        tracing::info!("blockhash done, recovering public keys");
         let public_keys = self
             .signer_signature
             .iter()
@@ -102,7 +124,7 @@ impl NakamotoBlockHeader {
             .map(PublicKey::from)
             .collect::<BTreeSet<_>>();
 
-        signing_set == &public_keys
+        public_keys.is_subset(signing_set)
     }
 }
 
@@ -139,6 +161,7 @@ impl RecoverableSignature {
 
     pub fn verifying_key(&self, msg: &[u8; 32]) -> VerifyingKey {
         let (signature, recovery_id) = self.signature();
+        tracing::info!("recovering the verifying key");
         VerifyingKey::recover_from_prehash(msg, &signature, recovery_id).unwrap()
     }
 }

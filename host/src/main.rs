@@ -6,11 +6,14 @@ use stacks::blocks::NakamotoBlockHeader;
 use stacks::blocks::PublicKey;
 use std::collections::BTreeSet;
 
+use tracing_subscriber::EnvFilter;
+use tracing_subscriber::fmt::time::UtcTime;
+use tracing_subscriber::layer::SubscriberExt as _;
+use tracing_subscriber::util::SubscriberInitExt as _;
+
 fn main() {
     // Initialize tracing. In order to view logs, run `RUST_LOG=info cargo run`
-    tracing_subscriber::fmt()
-        .with_env_filter(tracing_subscriber::filter::EnvFilter::from_default_env())
-        .init();
+    setup_logging_json("debug");
 
     // An executor environment describes the configurations for the zkVM
     // including program inputs.
@@ -24,20 +27,31 @@ fn main() {
     // creates an ExecutorEnvBuilder. When you're done adding input, call
     // ExecutorEnvBuilder::build().
 
-    let signer_1 =
-        hex::decode("41634762d89dfa09133a4a8e9c1378d0161d29cd0a9433b51f1e3d32947a73dc01").unwrap();
-    let signer_2 =
-        hex::decode("9bfecf16c9c12792589dd2b843f850d5b89b81a04f8ab91c083bdf6709fbefee01").unwrap();
-    let signer_3 =
-        hex::decode("3ec0ca5770a356d6cd1a9bfcbf6cd151eb1bd85c388cc00648ec4ef5853fdb7401").unwrap();
-    let verifying_key_1: PublicKey = k256::PublicKey::from_sec1_bytes(&signer_1).unwrap().into();
-    let verifying_key_2: PublicKey = k256::PublicKey::from_sec1_bytes(&signer_2).unwrap().into();
-    let verifying_key_3: PublicKey = k256::PublicKey::from_sec1_bytes(&signer_3).unwrap().into();
+    let signer_1: [u8; 32] =
+        hex::decode("41634762d89dfa09133a4a8e9c1378d0161d29cd0a9433b51f1e3d32947a73dc").unwrap()
+        .try_into()
+        .unwrap();
+    let signer_2: [u8; 32] =
+        hex::decode("9bfecf16c9c12792589dd2b843f850d5b89b81a04f8ab91c083bdf6709fbefee").unwrap()
+        .try_into()
+        .unwrap();
+    let signer_3: [u8; 32] =
+        hex::decode("3ec0ca5770a356d6cd1a9bfcbf6cd151eb1bd85c388cc00648ec4ef5853fdb74").unwrap()
+        .try_into()
+        .unwrap();
+    
+    let verifying_key_1: PublicKey = k256::SecretKey::from_slice(&signer_1).unwrap().public_key().into();
+    let verifying_key_2: PublicKey = k256::SecretKey::from_slice(&signer_2).unwrap().public_key().into();
+    let verifying_key_3: PublicKey = k256::SecretKey::from_slice(&signer_3).unwrap().public_key().into();
+
     let signing_set = BTreeSet::from([verifying_key_1, verifying_key_2, verifying_key_3]);
 
+    let header_str = r#"{"version":0,"chain_length":196,"burn_spent":1200000,"consensus_hash":"26ac914262c90ede1299c39af81bc93cafd029ee","parent_block_id":"7ae93e7f33086a7ff0ee5f0da73b9ce91e3fb057c9896002d6b6b7e980055b9c","tx_merkle_root":"2b7fa9caee5b64b4b02df4166b83c6e6a5183135d1c944d69e5b353f7b1e662a","state_index_root":"38c3a6e1d0fbed4903e873fd28da17c04ec799527eb46cf66c71f6ead47c9aa8","timestamp":1757705996,"miner_signature":"0113526262a34ddeb65c2f5254f532b5a0521fc83748885071ac4b537694df3e4649f80ddb310fea9695d985c53ee5a6d8b422139aae1a00e9f7b05d881937f330","signer_signature":["010a3343a6085259a8a400fecad54356c01095ed4dcb62b43fbcf8234ab5e6b9b740d46efabf155f2dfcb3d34898484c9ffb964a2dd0e3827cb27b0f505426fd9e","0074e3a88074957dd83abd12e92e50039328efbac7699608dd7585c075bee7e21a75c6522aac2f73426225e8639370416d981da9f81686b2d429d0a703a2625e35"],"pox_treatment":"0007000000017f"}"#;
+    let header: NakamotoBlockHeader = serde_json::from_str(header_str).unwrap();
     // For example:
+    tracing::info!("writing input to executor environment");
     let env = ExecutorEnv::builder()
-        .write(&signing_set)
+        .write(&(header, signing_set))
         .unwrap()
         .build()
         .unwrap();
@@ -60,4 +74,17 @@ fn main() {
     // The receipt was verified at the end of proving, but the below code is an
     // example of how someone else could verify this receipt.
     receipt.verify(VAULT_PROVER_ID).unwrap();
+}
+
+fn setup_logging_json(directives: &str) {
+    let main_layer = tracing_subscriber::fmt::layer()
+        .with_target(true)
+        .with_line_number(true)
+        .with_file(true)
+        .with_timer(UtcTime::rfc_3339());
+
+    tracing_subscriber::registry()
+        .with(EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new(directives)))
+        .with(main_layer)
+        .init()
 }
