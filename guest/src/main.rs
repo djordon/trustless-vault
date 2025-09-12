@@ -14,6 +14,7 @@ fn main() {
 
     let output = (header, signing_set, is_valid);
 
+    println!("was it valid? {:?}", is_valid);
     // write public output to the journal
     env::commit(&output);
 }
