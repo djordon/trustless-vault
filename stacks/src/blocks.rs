@@ -11,8 +11,8 @@ use sha2::Digest as _;
 
 #[derive(Deserialize, Serialize)]
 pub struct BitVec<const MAX_SIZE: u16> {
-    data: Vec<u8>,
-    len: u16,
+    pub data: Vec<u8>,
+    pub len: u16,
 }
 
 #[derive(Deserialize, Serialize)]
