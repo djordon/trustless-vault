@@ -1,5 +1,10 @@
+use std::collections::BTreeSet;
 use std::vec::Vec;
 
+use k256::ecdsa::RecoveryId;
+use k256::ecdsa::Signature;
+use k256::ecdsa::VerifyingKey;
+// use k256::ecdsa::signature::Verifier as _;
 use serde::Deserialize;
 use serde::Serialize;
 use sha2::Digest as _;
@@ -40,7 +45,7 @@ pub struct NakamotoBlockHeader {
     /// The set of recoverable ECDSA signatures over
     /// the block header from the signer set active during the tenure.
     /// (ordered by reward set order)
-    pub signer_signature: Vec<FixedArray<65>>,
+    pub signer_signature: Vec<RecoverableSignature>,
     /// A bitvec which conveys whether reward addresses should be punished (by burning their PoX rewards)
     ///  or not in this block.
     ///
@@ -84,6 +89,32 @@ impl NakamotoBlockHeader {
 
     pub fn is_shadow_block(&self) -> bool {
         self.version & 0x80 != 0
+    }
+
+    pub fn verify_signatures(&self, signing_set: &BTreeSet<VerifyingKey>) -> bool {
+        let hash = self.block_hash();
+        let public_keys = self
+            .signer_signature
+            .iter()
+            .map(|sig| sig.verifying_key(&hash))
+            .collect::<BTreeSet<_>>();
+
+        signing_set == &public_keys
+    }
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct RecoverableSignature(pub FixedArray<65>);
+
+impl RecoverableSignature {
+    pub fn signature(&self) -> (Signature, RecoveryId) {
+        let recovery_id = RecoveryId::from_byte(self.0.0[0]).unwrap();
+        (Signature::from_slice(&self.0.0[1..]).unwrap(), recovery_id)
+    }
+
+    pub fn verifying_key(&self, msg: &[u8; 32]) -> VerifyingKey {
+        let (signature, recovery_id) = self.signature();
+        VerifyingKey::recover_from_prehash(msg, &signature, recovery_id).unwrap()
     }
 }
 
