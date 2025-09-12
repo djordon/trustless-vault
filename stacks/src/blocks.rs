@@ -4,6 +4,8 @@ use std::vec::Vec;
 use k256::ecdsa::RecoveryId;
 use k256::ecdsa::Signature;
 use k256::ecdsa::VerifyingKey;
+use k256::CompressedPoint;
+use k256::PublicKey as K256PublicKey;
 // use k256::ecdsa::signature::Verifier as _;
 use serde::Deserialize;
 use serde::Serialize;
@@ -91,33 +93,20 @@ impl NakamotoBlockHeader {
         self.version & 0x80 != 0
     }
 
-    pub fn verify_signatures(&self, signing_set: &BTreeSet<VerifyingKey>) -> bool {
+    pub fn verify_signatures(&self, signing_set: &BTreeSet<PublicKey>) -> bool {
         let hash = self.block_hash();
         let public_keys = self
             .signer_signature
             .iter()
             .map(|sig| sig.verifying_key(&hash))
+            .map(PublicKey::from)
             .collect::<BTreeSet<_>>();
 
         signing_set == &public_keys
     }
 }
 
-#[derive(Deserialize, Serialize)]
-pub struct RecoverableSignature(pub FixedArray<65>);
-
-impl RecoverableSignature {
-    pub fn signature(&self) -> (Signature, RecoveryId) {
-        let recovery_id = RecoveryId::from_byte(self.0.0[0]).unwrap();
-        (Signature::from_slice(&self.0.0[1..]).unwrap(), recovery_id)
-    }
-
-    pub fn verifying_key(&self, msg: &[u8; 32]) -> VerifyingKey {
-        let (signature, recovery_id) = self.signature();
-        VerifyingKey::recover_from_prehash(msg, &signature, recovery_id).unwrap()
-    }
-}
-
+#[derive(Eq, PartialEq, Ord, PartialOrd)]
 pub struct FixedArray<const N: usize>(pub [u8; N]);
 
 impl<const N: usize> serde::Serialize for FixedArray<N> {
@@ -136,6 +125,36 @@ impl<'de, const N: usize> serde::Deserialize<'de> for FixedArray<N> {
             .map_err(|bytes| serde::de::Error::custom(hex::encode(bytes)))?;
 
         Ok(FixedArray(bytes))
+    }
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct RecoverableSignature(pub FixedArray<65>);
+
+impl RecoverableSignature {
+    pub fn signature(&self) -> (Signature, RecoveryId) {
+        let recovery_id = RecoveryId::from_byte(self.0.0[0]).unwrap();
+        (Signature::from_slice(&self.0.0[1..]).unwrap(), recovery_id)
+    }
+
+    pub fn verifying_key(&self, msg: &[u8; 32]) -> VerifyingKey {
+        let (signature, recovery_id) = self.signature();
+        VerifyingKey::recover_from_prehash(msg, &signature, recovery_id).unwrap()
+    }
+}
+
+#[derive(Deserialize, Serialize, Eq, PartialEq, Ord, PartialOrd)]
+pub struct PublicKey(pub FixedArray<33>);
+
+impl From<K256PublicKey> for PublicKey {
+    fn from(public_key: K256PublicKey) -> Self {
+        PublicKey(FixedArray(CompressedPoint::from(public_key).into()))
+    }
+}
+
+impl From<VerifyingKey> for PublicKey {
+    fn from(verifying_key: VerifyingKey) -> Self {
+        PublicKey::from(K256PublicKey::from(verifying_key))
     }
 }
 

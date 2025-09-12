@@ -7,7 +7,7 @@ edition = "2021"
 risc0-build = { version = "^3.0.3" }
 
 [package.metadata.risc0]
-methods = ["guest"]
+methods = ["../guest"]
 
 [dependencies]
 # hex = { workspace = true }

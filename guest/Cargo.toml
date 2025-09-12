@@ -14,7 +14,7 @@ k256 = { version = "=0.13.4", default-features = false, features = [
   "std",
 ] }
 risc0-zkvm = { version = "^3.0.3", default-features = false, features = ['std'] }
-stacks = { path = "../../stacks" }
+stacks = { path = "../stacks" }
 
 [patch.crates-io]
 # Placing these patch statement in the workspace Cargo.toml will add RISC Zero SHA-256 and bigint
