@@ -1,12 +1,10 @@
 use std::collections::BTreeSet;
 use std::vec::Vec;
 
+use k256::CompressedPoint;
 use k256::ecdsa::RecoveryId;
 use k256::ecdsa::Signature;
 use k256::ecdsa::VerifyingKey;
-use k256::CompressedPoint;
-use k256::PublicKey as K256PublicKey;
-// use k256::ecdsa::signature::Verifier as _;
 use serde::Deserialize;
 use serde::Serialize;
 use sha2::Digest as _;
@@ -28,9 +26,8 @@ impl serde::Serialize for BitVec {
 impl<'de> serde::Deserialize<'de> for BitVec {
     fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<BitVec, D::Error> {
         let inst_str = String::deserialize(d)?;
-        let bytes  = hex::decode(&inst_str)
-            .map_err(serde::de::Error::custom)?;
-        
+        let bytes = hex::decode(&inst_str).map_err(serde::de::Error::custom)?;
+
         let len = u16::from_be_bytes(bytes[..2].try_into().unwrap());
         let data = bytes[2..].to_vec();
         Ok(BitVec { len, data })
@@ -114,9 +111,8 @@ impl NakamotoBlockHeader {
     }
 
     pub fn verify_signatures(&self, signing_set: &BTreeSet<PublicKey>) -> bool {
-        tracing::info!("computing block hash");
         let hash = self.block_hash();
-        tracing::info!("blockhash done, recovering public keys");
+
         let public_keys = self
             .signer_signature
             .iter()
@@ -124,7 +120,7 @@ impl NakamotoBlockHeader {
             .map(PublicKey::from)
             .collect::<BTreeSet<_>>();
 
-        public_keys.is_subset(signing_set)
+        !public_keys.is_empty() && public_keys.is_subset(signing_set)
     }
 }
 
@@ -161,7 +157,6 @@ impl RecoverableSignature {
 
     pub fn verifying_key(&self, msg: &[u8; 32]) -> VerifyingKey {
         let (signature, recovery_id) = self.signature();
-        tracing::info!("recovering the verifying key");
         VerifyingKey::recover_from_prehash(msg, &signature, recovery_id).unwrap()
     }
 }
@@ -169,15 +164,15 @@ impl RecoverableSignature {
 #[derive(Deserialize, Serialize, Eq, PartialEq, Ord, PartialOrd)]
 pub struct PublicKey(pub FixedArray<33>);
 
-impl From<K256PublicKey> for PublicKey {
-    fn from(public_key: K256PublicKey) -> Self {
+impl From<k256::PublicKey> for PublicKey {
+    fn from(public_key: k256::PublicKey) -> Self {
         PublicKey(FixedArray(CompressedPoint::from(public_key).into()))
     }
 }
 
 impl From<VerifyingKey> for PublicKey {
     fn from(verifying_key: VerifyingKey) -> Self {
-        PublicKey::from(K256PublicKey::from(verifying_key))
+        PublicKey::from(k256::PublicKey::from(verifying_key))
     }
 }
 
