@@ -1,4 +1,3 @@
-use std::collections::BTreeSet;
 use std::vec::Vec;
 
 use k256::CompressedPoint;
@@ -110,21 +109,22 @@ impl NakamotoBlockHeader {
         self.version & 0x80 != 0
     }
 
-    pub fn verify_signatures(&self, signing_set: &BTreeSet<PublicKey>) -> bool {
+    pub fn verify_signatures(&self, signing_set: &[PublicKey; 3]) -> bool {
         let hash = self.block_hash();
 
-        let public_keys = self
-            .signer_signature
+        if self.signer_signature.is_empty() {
+            return false;
+        }
+
+        self.signer_signature
             .iter()
             .map(|sig| sig.verifying_key(&hash))
             .map(PublicKey::from)
-            .collect::<BTreeSet<_>>();
-
-        !public_keys.is_empty() && public_keys.is_subset(signing_set)
+            .all(|key| signing_set.contains(&key))
     }
 }
 
-#[derive(Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy)]
 pub struct FixedArray<const N: usize>(pub [u8; N]);
 
 impl<const N: usize> serde::Serialize for FixedArray<N> {
@@ -161,7 +161,7 @@ impl RecoverableSignature {
     }
 }
 
-#[derive(Deserialize, Serialize, Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Deserialize, Serialize, Eq, PartialEq, Ord, PartialOrd, Clone, Copy)]
 pub struct PublicKey(pub FixedArray<33>);
 
 impl From<k256::PublicKey> for PublicKey {
