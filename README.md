@@ -35,6 +35,7 @@ The above command should take a few minutes, and assumes that you've already bui
 
 
 ---
+---
 
 # RISC Zero Rust Starter Template
 
