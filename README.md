@@ -1,8 +1,10 @@
 # Trustless vaults
 
-This is a demo project that "verifies" that a particular Stacks block header is signed by the expected set of signers.
+This is a demo project that "verifies" that a particular Stacks block header is signed by an expected set of signers.
 
-The block header encoded in the host program was generated using the stacks node in sBTC's devenv. Specifically, after running `make devenv-up` in the sBTC repo and waiting for Nakamoto, I ran the following rust code as a test
+The public keys hard-coded in the guest program are the public keys associated with the stacks signers' private keys in sBTC's devenv.
+
+The block header encoded in the host program was generated using the stacks node in sBTC's devenv. Specifically, after running `make devenv-up` in the sBTC repo and waiting for Nakamoto, I ran the following rust code as a test in the test module of `signer/src/stacks/api.rs`, which prints the block header:
 ```rust
 #[tokio::test]
 async fn get_blocks_test2() {
@@ -21,17 +23,16 @@ async fn get_blocks_test2() {
     println!("{}", serde_json::to_string(&block.header).unwrap());
 }
 ```
-The public keys hard coded in the guest program are the public keys associated with the stacks signers' private keys.
 
 To run the code here without generating a proof, do the following:
 ```bash
 RISC0_DEV_MODE=1 RUST_LOG="info" RISC0_INFO=1 cargo run --release
 ```
-Most of the time would be spend in compilation. To generate a proof set `RISC0_DEV_MODE=0` and run the binary:
+To generate a proof set `RISC0_DEV_MODE=0` and run the host binary with dev mode set to zero:
 ```bash
 RISC0_DEV_MODE=0 RUST_LOG="info" RISC0_INFO=1 ./target/release/host
 ```
-The above command should take a few minutes, and assumes that you've already built the binary.
+The above command should take a few minutes.
 
 
 ---
