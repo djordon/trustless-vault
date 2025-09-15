@@ -23,6 +23,28 @@ async fn get_blocks_test2() {
     println!("{}", serde_json::to_string(&block.header).unwrap());
 }
 ```
+The public keys in the guest program were generated as follows
+```rust
+    let signer_1 =
+        hex::decode("41634762d89dfa09133a4a8e9c1378d0161d29cd0a9433b51f1e3d32947a73dc").unwrap();
+    let signer_2 =
+        hex::decode("9bfecf16c9c12792589dd2b843f850d5b89b81a04f8ab91c083bdf6709fbefee").unwrap();
+    let signer_3 =
+        hex::decode("3ec0ca5770a356d6cd1a9bfcbf6cd151eb1bd85c388cc00648ec4ef5853fdb74").unwrap();
+
+    let verifying_key_1 = k256::SecretKey::from_slice(&signer_1).unwrap();
+    let verifying_key_2 = k256::SecretKey::from_slice(&signer_2).unwrap();
+    let verifying_key_3 = k256::SecretKey::from_slice(&signer_3).unwrap();
+
+    let signing_set: BTreeSet<PublicKey> = [verifying_key_1, verifying_key_2, verifying_key_3]
+        .iter()
+        .map(|sk| sk.public_key().into())
+        .collect();
+
+    println!("signing set: {:?}", signing_set.iter().next().unwrap());
+    println!("signing set: {:?}", signing_set.iter().nth(1).unwrap());
+    println!("signing set: {:?}", signing_set.iter().nth(2).unwrap());
+```
 
 To run the code here without generating a proof, do the following:
 ```bash

@@ -16,42 +16,27 @@ fn main() {
     // Initialize tracing. In order to view logs, run `RUST_LOG=info cargo run`
     setup_logging_json("debug");
 
+    // Nakamoto block header taken from a development environment for Stacks.
+    let header_str = r#"{
+        "version": 0,
+        "chain_length": 196,
+        "burn_spent": 1200000,
+        "consensus_hash": "26ac914262c90ede1299c39af81bc93cafd029ee",
+        "parent_block_id": "7ae93e7f33086a7ff0ee5f0da73b9ce91e3fb057c9896002d6b6b7e980055b9c",
+        "tx_merkle_root": "2b7fa9caee5b64b4b02df4166b83c6e6a5183135d1c944d69e5b353f7b1e662a",
+        "state_index_root": "38c3a6e1d0fbed4903e873fd28da17c04ec799527eb46cf66c71f6ead47c9aa8",
+        "timestamp": 1757705996,
+        "miner_signature": "0113526262a34ddeb65c2f5254f532b5a0521fc83748885071ac4b537694df3e4649f80ddb310fea9695d985c53ee5a6d8b422139aae1a00e9f7b05d881937f330",
+        "signer_signature": [
+            "010a3343a6085259a8a400fecad54356c01095ed4dcb62b43fbcf8234ab5e6b9b740d46efabf155f2dfcb3d34898484c9ffb964a2dd0e3827cb27b0f505426fd9e",
+            "0074e3a88074957dd83abd12e92e50039328efbac7699608dd7585c075bee7e21a75c6522aac2f73426225e8639370416d981da9f81686b2d429d0a703a2625e35"
+        ],
+        "pox_treatment": "0007000000017f"
+    }"#;
+    let header: NakamotoBlockHeader = serde_json::from_str(header_str).unwrap();
+
     // An executor environment describes the configurations for the zkVM
     // including program inputs.
-    // A default ExecutorEnv can be created like so:
-    // `let env = ExecutorEnv::builder().build().unwrap();`
-    // However, this `env` does not have any inputs.
-    //
-    // To add guest input to the executor environment, use
-    // ExecutorEnvBuilder::write().
-    // To access this method, you'll need to use ExecutorEnv::builder(), which
-    // creates an ExecutorEnvBuilder. When you're done adding input, call
-    // ExecutorEnvBuilder::build().
-
-    // This is used to generate the public keys in the guest program
-    // let signer_1 =
-    //     hex::decode("41634762d89dfa09133a4a8e9c1378d0161d29cd0a9433b51f1e3d32947a73dc").unwrap();
-    // let signer_2 =
-    //     hex::decode("9bfecf16c9c12792589dd2b843f850d5b89b81a04f8ab91c083bdf6709fbefee").unwrap();
-    // let signer_3 =
-    //     hex::decode("3ec0ca5770a356d6cd1a9bfcbf6cd151eb1bd85c388cc00648ec4ef5853fdb74").unwrap();
-
-    // let verifying_key_1 = k256::SecretKey::from_slice(&signer_1).unwrap();
-    // let verifying_key_2 = k256::SecretKey::from_slice(&signer_2).unwrap();
-    // let verifying_key_3 = k256::SecretKey::from_slice(&signer_3).unwrap();
-
-    // let signing_set: BTreeSet<PublicKey> = [verifying_key_1, verifying_key_2, verifying_key_3]
-    //     .iter()
-    //     .map(|sk| sk.public_key().into())
-    //     .collect();
-
-    // println!("signing set: {:?}", signing_set.iter().next().unwrap());
-    // println!("signing set: {:?}", signing_set.iter().nth(1).unwrap());
-    // println!("signing set: {:?}", signing_set.iter().nth(2).unwrap());
-
-    let header_str = r#"{"version":0,"chain_length":196,"burn_spent":1200000,"consensus_hash":"26ac914262c90ede1299c39af81bc93cafd029ee","parent_block_id":"7ae93e7f33086a7ff0ee5f0da73b9ce91e3fb057c9896002d6b6b7e980055b9c","tx_merkle_root":"2b7fa9caee5b64b4b02df4166b83c6e6a5183135d1c944d69e5b353f7b1e662a","state_index_root":"38c3a6e1d0fbed4903e873fd28da17c04ec799527eb46cf66c71f6ead47c9aa8","timestamp":1757705996,"miner_signature":"0113526262a34ddeb65c2f5254f532b5a0521fc83748885071ac4b537694df3e4649f80ddb310fea9695d985c53ee5a6d8b422139aae1a00e9f7b05d881937f330","signer_signature":["010a3343a6085259a8a400fecad54356c01095ed4dcb62b43fbcf8234ab5e6b9b740d46efabf155f2dfcb3d34898484c9ffb964a2dd0e3827cb27b0f505426fd9e","0074e3a88074957dd83abd12e92e50039328efbac7699608dd7585c075bee7e21a75c6522aac2f73426225e8639370416d981da9f81686b2d429d0a703a2625e35"],"pox_treatment":"0007000000017f"}"#;
-    let header: NakamotoBlockHeader = serde_json::from_str(header_str).unwrap();
-    // For example:
     tracing::info!("writing input to executor environment");
     let env = ExecutorEnv::builder()
         .write(&header)
