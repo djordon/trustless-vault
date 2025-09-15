@@ -1,3 +1,41 @@
+# Trustless vaults
+
+This is a demo project that "verifies" that a particular Stacks block header is signed by the expected set of signers.
+
+The block header encoded in the host program was generated using the stacks node in sBTC's devenv. Specifically, after running `make devenv-up` in the sBTC repo and waiting for Nakamoto, I ran the following rust code as a test
+```rust
+#[tokio::test]
+async fn get_blocks_test2() {
+    // Here we test that out code will handle the response from a
+    // stacks node in the expected way.
+    const TENURE_END_BLOCK_ID: &str =
+        "B0E21FEC1677FBF46392B2C83B9C383A7CBA6EF083C651F05680F984C33FD62F";
+
+    let client = StacksClient::new(url::Url::parse("http://localhost:20443").unwrap()).unwrap();
+
+    let block_id = StacksBlockId::from_hex(TENURE_END_BLOCK_ID).unwrap();
+    // The moment of truth, do the requests succeed?
+    let block = client.get_block(block_id).await.unwrap();
+    
+    println!("{}", block.is_shadow_block());
+    println!("{}", serde_json::to_string(&block.header).unwrap());
+}
+```
+The public keys hard coded in the guest program are the public keys associated with the stacks signers' private keys.
+
+To run the code here without generating a proof, do the following:
+```bash
+RISC0_DEV_MODE=1 RUST_LOG="info" RISC0_INFO=1 cargo run --release
+```
+Most of the time would be spend in compilation. To generate a proof set `RISC0_DEV_MODE=0` and run the binary:
+```bash
+RISC0_DEV_MODE=0 RUST_LOG="info" RISC0_INFO=1 ./target/release/host
+```
+The above command should take a few minutes, and assumes that you've already built the binary.
+
+
+---
+
 # RISC Zero Rust Starter Template
 
 Welcome to the RISC Zero Rust Starter Template! This template is intended to
