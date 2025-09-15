@@ -1,7 +1,6 @@
 use risc0_zkvm::guest::env;
 use stacks::blocks::NakamotoBlockHeader;
 use stacks::blocks::PublicKey;
-use stacks::blocks::FixedArray;
 
 const SIGNER_1_PUBLIC_KEY: [u8; 33] = [
     2,   0, 115,  17,  67,   1,  35, 212, 202, 217, 127,
@@ -21,14 +20,12 @@ const SIGNER_3_PUBLIC_KEY: [u8; 33] = [
 ];
 
 const INITIAL_SIGNING_SET: [PublicKey; 3] = [
-    PublicKey(FixedArray(SIGNER_1_PUBLIC_KEY)),
-    PublicKey(FixedArray(SIGNER_2_PUBLIC_KEY)),
-    PublicKey(FixedArray(SIGNER_3_PUBLIC_KEY)),
+    PublicKey(SIGNER_1_PUBLIC_KEY),
+    PublicKey(SIGNER_2_PUBLIC_KEY),
+    PublicKey(SIGNER_3_PUBLIC_KEY),
 ];
 
 fn main() {
-    // TODO: Implement your guest code here
-
     // read the input
     let header: NakamotoBlockHeader = env::read();
 

@@ -161,12 +161,12 @@ impl RecoverableSignature {
     }
 }
 
-#[derive(Deserialize, Serialize, Eq, PartialEq, Ord, PartialOrd, Clone, Copy)]
-pub struct PublicKey(pub FixedArray<33>);
+#[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy)]
+pub struct PublicKey(pub [u8; 33]);
 
 impl From<k256::PublicKey> for PublicKey {
     fn from(public_key: k256::PublicKey) -> Self {
-        PublicKey(FixedArray(CompressedPoint::from(public_key).into()))
+        PublicKey(CompressedPoint::from(public_key).into())
     }
 }
 
